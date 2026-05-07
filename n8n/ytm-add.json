@@ -1,0 +1,115 @@
+{
+  "name": "ytm-add",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ytm-add",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fc25c0c7-5926-445b-91c8-bc49724c1541",
+      "name": "Webhook",
+      "webhookId": "c20e8bed-f020-40e3-8202-fe522b4fa1d2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const normalize = (s) => (s || '').replace(/\\s+/g, ' ').trim();\nconst safe = (s) => normalize(s) || '';\n\nconst pageUrl = safe($input.first().json.body.pageUrl);\nif (!pageUrl) {\n  throw new Error('Missing pageUrl/url');\n}\n\nconst title = safe($input.first().json.body.title) || 'Unknown Title';\nconst artist = safe($input.first().json.body.artist) || 'Unknown Artist';\n\nreturn [{\n  url: pageUrl,\n  title,\n  artist,\n  album: 'Singles'\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "fa942825-fd96-4483-95a2-ccf4a2c4a564",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://music-downloader:8000/download",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $json.url }}\",\n  \"title\": \"{{ $json.title }}\",\n  \"artist\": \"{{ $json.artist }}\",\n  \"album\": \"{{ $json.album }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "15f5f918-a26b-4ac3-bb3b-b05a6ca8c302",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"ok\": \"={{$json.ok}}\",\n  \"saved\": \"={{$json.saved}}\",\n  \"title\": \"={{$json.title}}\",\n  \"artist\": \"={{$json.artist}}\",\n  \"album\": \"={{$json.album}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        592,
+        0
+      ],
+      "id": "0bc06986-a0ec-4e74-b6a1-7a3713641999",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ab0857cf-9cce-45fe-9e41-8ca360386f04",
+  "meta": {
+    "instanceId": "0dd0ef0fc225f70bd57402a3a0bd799dba562d9e10c8c022999d37508394016b"
+  },
+  "id": "njlZXoMK1dHpv0AD",
+  "tags": []
+}

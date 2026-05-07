@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "YTM to n8n",
+  "version": "1.0.0",
+  "description": "Send current YouTube Music track to n8n webhook",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": [
+    "https://music.youtube.com/*",
+    "https://fishless-semibiologic-nella.ngrok-free.dev/*"
+  ],
+  "action": {
+    "default_title": "Send to n8n"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
