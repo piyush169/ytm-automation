@@ -1,73 +1,95 @@
-YTM-to-Navidrome: Automated Media Pipeline
+# YTM-to-Navidrome: Automated Media Pipeline
+
 A modular, multi-container automation suite that streamlines the process of capturing, tagging, and streaming music from YouTube Music into a private, self-hosted cloud.
 
 This project demonstrates an end-to-end engineering workflow: from a frontend browser extension to a backend orchestration engine (n8n), down to specialized microservices (FastAPI/yt-dlp) and secure networking (Tailscale).
 
-# 🚀 The Architecture
-Trigger: A custom Chrome Extension (Manifest V3) captures metadata (Title, Artist, URL) directly from the YouTube Music player bar.
+---
 
-Orchestration: Data is dispatched via a secure webhook to an n8n instance. The workflow parses the payload and handles the logic-gate for the download request.
+## 🚀 Architecture
 
-Processing: An asynchronous FastAPI microservice receives the metadata. It utilizes yt-dlp for high-quality audio retrieval and FFmpeg for automated ID3 tagging and cover-art injection.
+| Stage | Component | Description |
+|---|---|---|
+| **Trigger** | Chrome Extension (MV3) | Captures Title, Artist, and URL from the YouTube Music player bar |
+| **Orchestration** | n8n | Receives the webhook payload and handles download request logic |
+| **Processing** | FastAPI + yt-dlp | Retrieves high-quality audio; FFmpeg handles ID3 tagging and cover-art injection |
+| **Storage** | Docker Volume | Media is written to a shared volume, instantly picked up by Navidrome |
+| **Access** | Tailscale MagicDNS | Exposes the full stack globally without opening public ports |
 
-Storage & Delivery: Media is stored in a shared Docker Volume, where it is instantly picked up by Navidrome.
+---
 
-Access: The entire stack is accessible globally and securely via Tailscale MagicDNS, providing a permanent, stable session without exposing public ports.
+## 🛠️ Tech Stack
 
-# 🛠️ Tech Stack
-Languages : Python (FastAPI), JavaScript (Chrome Extension / n8n nodes).
+| Category | Tools |
+|---|---|
+| **Languages** | Python (FastAPI), JavaScript (Chrome Extension / n8n nodes) |
+| **DevOps** | Docker, Docker Compose, Git (SSH-authenticated) |
+| **Networking** | Tailscale (MagicDNS & Serve), ngrok (Webhook Ingress) |
+| **Media Tools** | FFmpeg, yt-dlp, MusicBrainz API |
+| **Automation** | n8n |
 
-DevOps: Docker, Docker Compose, Git (SSH-authenticated).
+---
 
-Networking: Tailscale (MagicDNS & Serve), ngrok (Webhook Ingress).
+## 📁 Project Structure
 
-Media Tools: FFmpeg, yt-dlp, MusicBrainz API.
-
-Automation: n8n.
-
-# 📁 Project Structure
-
+```
 .
-├── downloader/            # Python FastAPI API (yt-dlp + FFmpeg)
+├── downloader/            # Python FastAPI microservice (yt-dlp + FFmpeg)
 │   ├── app.py             # Main API logic with BackgroundTasks
 │   ├── Dockerfile         # Optimized slim Python image
 │   └── requirements.txt   # Backend dependencies
 ├── extension/             # Chrome Extension source code
 │   ├── manifest.json      # Manifest V3 configuration
-│   └── background.js      # metadata scraping & fetch logic
+│   └── background.js      # Metadata scraping & fetch logic
 ├── n8n/                   # Automation workflow
-│   ├── workflow.json      # Exported n8n logic
+│   ├── workflow.json      # Exported n8n workflow
 │   └── README.md          # Workflow documentation
 └── docker-compose.yml     # Multi-container orchestration
+```
 
-# ⚙️ Setup & Installation
-1. Backend Deployment
-Ensure you have Docker and Tailscale installed on your server.
+---
 
-Bash
-# Clone the repository using SSH
-`git clone git@github.com:piyush169/ytm-automation.git
-cd ytm-automation`
+## ⚙️ Setup & Installation
 
-# Spin up the microservices
-`docker-compose up -d`
-2. Networking (Tailscale)
-Enable MagicDNS in your Tailscale console to access the suite via a permanent URL. On your Ubuntu server, ensure DNS settings are accepted:
+### 1. Backend Deployment
 
-Bash
-`sudo tailscale up --accept-dns=true`
-3. Extension Setup
-Navigate to chrome://extensions/.
+Ensure Docker and Tailscale are installed on your server, then clone and start the stack:
 
-Enable Developer Mode.
+```bash
+# Clone the repository via SSH
+git clone git@github.com:piyush169/ytm-automation.git
+cd ytm-automation
 
-Click Load Unpacked and select the extension/ folder from this repo.
+# Spin up all microservices
+docker-compose up -d
+```
 
-# ✨ Key Technical Challenges Solved
-Session Persistence: Solved "Method Not Allowed" and session logout issues by migrating from temporary ngrok tunnels to a stable Tailscale MagicDNS environment.
+### 2. Networking (Tailscale)
 
-Asynchronous Processing: Implemented FastAPI BackgroundTasks to prevent n8n webhook timeouts during heavy yt-dlp download cycles.
+Enable **MagicDNS** in your Tailscale admin console to access the suite via a permanent hostname. On your Ubuntu server, accept DNS settings:
 
-Automated Metadata: Developed a fuzzy-matching logic using the MusicBrainz API to ensure tracks are filed under the correct albums even when YouTube metadata is incomplete.
+```bash
+sudo tailscale up --accept-dns=true
+```
 
-Secure Authentication: Migrated from HTTPS PAT-based Git access to SSH Key authentication for automated, secure deployments.
+### 3. Chrome Extension
+
+1. Navigate to `chrome://extensions/`
+2. Enable **Developer Mode**
+3. Click **Load Unpacked** and select the `extension/` folder from this repo
+
+---
+
+## ✨ Key Technical Challenges Solved
+
+**Session Persistence**
+Resolved "Method Not Allowed" errors and session logout instability by migrating from temporary ngrok tunnels to a persistent Tailscale MagicDNS environment.
+
+**Asynchronous Processing**
+Implemented FastAPI `BackgroundTasks` to return an immediate webhook response to n8n, preventing timeouts during long-running yt-dlp download cycles.
+
+**Automated Metadata**
+Built a fuzzy-matching pipeline against the MusicBrainz API to correctly file tracks under their proper albums, even when YouTube Music metadata is incomplete or inconsistent.
+
+**Secure Authentication**
+Migrated from HTTPS PAT-based Git access to SSH key authentication for secure, credential-free automated deployments.
