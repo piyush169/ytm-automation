@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  downloader:
+    build:
+      context: ./downloader
+      dockerfile: Dockerfile
+    container_name: music-downloader
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - music_library:/music
+    networks:
+      - automation-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-automation
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - automation-net
+
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome-streaming
+    restart: unless-stopped
+    ports:
+      - "4533:4533"
+    environment:
+      - ND_SCANSCHEDULE=1h
+      - ND_LOGLEVEL=info
+      - ND_SESSIONTIMEOUT=24h
+      - ND_BASEURL=""
+    volumes:
+      - music_library:/music
+      - navidrome_data:/data
+    networks:
+      - automation-net
+
+networks:
+  automation-net:
+    driver: bridge
+
+volumes:
+  music_library:
+    driver: local
+  n8n_data:
+    driver: local
+  navidrome_data:
+    driver: local
